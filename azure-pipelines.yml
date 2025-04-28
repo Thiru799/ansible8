@@ -1,21 +1,47 @@
 trigger:
-- master
+- main
 
-pool:
-  vmImage: windows-latest
 
-steps:
-- script: |
-    python -m venv venv
-    call venv\Scripts\activate
-    python -m pip install --upgrade pip
+stages:
+  - stage: python
+    displayName: python setup
+    jobs:
+      - job: python
+        displayName: download and create env for python
+        pool:
+         vmImage: 'windows-latest'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azuresubscription: "HPE_FC_RPA_SUPPORT_BOTS-connection-1"
+              scriptType: 'bash'
+              scriptLocation: inlineScript
+              inlineScript: |
+                git clone -b master https://github.com/Thiru799/jpetstore-6.gitt temp_project
+                ls
+                mkdir -p /d/Projects/demo 
+                cp -r temp_project/* /d/Projects/demo
+                ls /d/Projects/demo/
+                python3 -m venv master
+                ls
+                echo "Activating virtual environment..."
+                source master/Scripts/activate
+                curl https://pypi.org/simple
+                
+          
+      
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.7.9'
+              addToPath: true
+              architecture: 'x64'
 
-    if exist requirements.txt (
-        pip install -r requirements.txt
-    ) else (
-        echo No requirements.txt found, skipping dependency installation.
-    )
+          - script: |
+              python -m pip install --upgrade pip setuptools wheel
+              pip install --prefer-binary -r requirements.txt
+            displayName: 'Install Python Dependencies'
 
-    pip install pytest
-    pytest tests/ || echo Tests failed, but continuing...
-  displayName: 'Setup venv, install dependencies, install pytest, and run tests'
+          - script: |
+              echo Python dependencies installed successfully!
+            displayName: 'Success Message'
+            condition: succeeded()
