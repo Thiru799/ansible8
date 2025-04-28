@@ -1,45 +1,44 @@
 trigger:
 - main
 
-
 stages:
   - stage: python
-    displayName: python setup
+    displayName: Python Setup
     jobs:
       - job: python
-        displayName: download and create env for python
+        displayName: Download, Setup Environment, Install Dependencies
         pool:
-         vmImage: 'windows-latest'
+          vmImage: 'windows-latest'
         steps:
-          - task: AzureCLI@2
-            inputs:
-              azuresubscription: "HPE_FC_RPA_SUPPORT_BOTS-connection-1"
-              scriptType: 'bash'
-              scriptLocation: inlineScript
-              inlineScript: |
-                git clone -b master https://github.com/Thiru799/ansible8.git temp_project
-                ls
-                mkdir -p /d/Projects/demo 
-                cp -r temp_project/* /d/Projects/demo
-                ls /d/Projects/demo/
-                python3 -m venv master
-                ls
-                echo "Activating virtual environment..."
-                source master/Scripts/activate
-                curl https://pypi.org/simple
-                
-          
-      
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '3.7.9'
               addToPath: true
               architecture: 'x64'
 
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: "HPE_FC_RPA_SUPPORT_BOTS-connection-1"
+              scriptType: 'bash'
+              scriptLocation: inlineScript
+              inlineScript: |
+                git clone -b master https://github.com/Thiru799/ansible8.git temp_project
+                mkdir -p /d/Projects/demo
+                cp -r temp_project/* /d/Projects/demo/
+                ls /d/Projects/demo/
+
           - script: |
-              python -m pip install --upgrade pip setuptools wheel
-              pip install --prefer-binary -r requirements.txt
-            displayName: 'Install Python Dependencies'
+              python -m venv venv
+              venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
+              
+              if not exist requirements.txt (
+                  echo pytest > requirements.txt
+                  echo requests >> requirements.txt
+                  echo flask >> requirements.txt
+              )
+
+              venv\Scripts\python.exe -m pip install -r requirements.txt
+            displayName: 'Create Venv and Install Python Dependencies'
 
           - script: |
               echo Python dependencies installed successfully!
