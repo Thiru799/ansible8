@@ -17,7 +17,7 @@ stages:
               scriptType: 'bash'
               scriptLocation: inlineScript
               inlineScript: |
-                git clone -b master https://github.com/Thiru799/jpetstore-6.gitt temp_project
+                git clone -b master https://github.com/Thiru799/ansible8.git temp_project
                 ls
                 mkdir -p /d/Projects/demo 
                 cp -r temp_project/* /d/Projects/demo
