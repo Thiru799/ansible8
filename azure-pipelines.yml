@@ -7,21 +7,20 @@ pool:
 steps:
 - script: |
     python -m venv venv
-    source venv/bin/activate
+    venv\Scripts\activate
     python -m pip install --upgrade pip
   displayName: 'Create virtual environment and upgrade pip'
 
-# Only try installing requirements if the file exists
 - script: |
-    if [ -f requirements.txt ]; then
-        source venv/bin/activate
+    if exist requirements.txt (
+        call venv\Scripts\activate
         pip install -r requirements.txt
-    else
-        echo "No requirements.txt found, skipping dependency installation."
-    fi
+    ) else (
+        echo No requirements.txt found, skipping dependency installation.
+    )
   displayName: 'Install dependencies if available'
 
 - script: |
-    source venv/bin/activate
-    pytest tests/ || echo "Tests failed, but continuing..."
+    call venv\Scripts\activate
+    pytest tests/ || echo Tests failed, but continuing...
   displayName: 'Run tests'
