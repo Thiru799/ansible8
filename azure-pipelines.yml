@@ -7,8 +7,7 @@ stages:
     jobs:
       - job: python
         displayName: Download, Setup Environment, Install Dependencies
-        pool:
-          vmImage: 'windows-latest'
+        pool: 'new agent vm self hosted'
         steps:
           - task: UsePythonVersion@0
             inputs:
