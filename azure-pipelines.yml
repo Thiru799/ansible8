@@ -18,7 +18,7 @@ stages:
 
           - task: AzureCLI@2
             inputs:
-              azureSubscription: "HPE_FC_RPA_SUPPORT_BOTS-connection-1"
+              azureSubscription: "bot-connection"
               scriptType: 'bash'
               scriptLocation: inlineScript
               inlineScript: |
