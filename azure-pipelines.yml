@@ -40,7 +40,7 @@ stages:
 
           - script: |
               # export PATH="/usr/local/bin:$PATH"
-              /usr/local/bin/python3.7 -m venv venv
+              /usr/local/bin/python3.7.9 -m venv venv
               source venv/bin/activate
               pip install --upgrade pip setuptools wheel
               
