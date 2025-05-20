@@ -34,9 +34,9 @@ stages:
               scriptLocation: inlineScript
               inlineScript: |
                 git clone -b master https://github.com/Thiru799/ansible8.git temp_project
-                mkdir -p /d/Projects/demo
-                cp -r temp_project/* /d/Projects/demo/
-                ls /d/Projects/demo/
+                mkdir -p /Projects/demo
+                cp -r temp_project/* /Projects/demo/
+                ls /Projects/demo/
 
           - script: |
               python -m venv venv
