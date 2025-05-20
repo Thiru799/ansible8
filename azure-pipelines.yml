@@ -9,11 +9,23 @@ stages:
         displayName: Download, Setup Environment, Install Dependencies
         pool: 'new agent vm self hosted'
         steps:
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '3.7.9'
-              addToPath: true
-              architecture: 'x64'
+          - script: 
+              echo "Installing system dependencies..."
+              sudo apt-get update
+              sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
+              libnss3-dev libssl-dev libreadline-dev libffi-dev curl
+
+              echo "Downloading Python 3.7.9 source..."
+              curl -O https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
+              tar -xvf Python-3.7.9.tgz
+              cd Python-3.7.9
+              echo "Configuring and building Python..."
+              ./configure --enable-optimizations
+              make -j$(nproc)
+              sudo make altinstall
+              echo "Installed Python version:"
+              python3.7 --version
+            displayName: 'Install Python 3.7.9 on ARM64'
 
           - task: AzureCLI@2
             inputs:
