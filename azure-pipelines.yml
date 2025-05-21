@@ -8,13 +8,15 @@ stages:
       - job: python
         displayName: Install Python and Setup Environment
         pool:
-          name: 'new agent vm self hosted'  # Replace with your actual self-hosted agent pool name
+          name: 'new agent vm self hosted'  # Replace with your actual pool name
+
         steps:
           - script: |
               echo "Installing system dependencies..."
               sudo apt-get update
               sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
               libnss3-dev libssl-dev libreadline-dev libffi-dev curl wget
+
               echo "Downloading and installing Python 3.7.9..."
               cd /tmp
               wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
@@ -23,16 +25,16 @@ stages:
               ./configure --enable-optimizations
               make -j$(nproc)
               sudo make altinstall
+
               echo "Checking installed Python version:"
               /usr/local/bin/python3.7 --version
-            displayName: 'Install Python 3.7.9 (Outside Agent Workspace)'
-
+            displayName: 'Install Python 3.7.9 (Safe)'
 
           - script: |
-              echo "Verifying Python 3.7 installation..."
-              which python3.7 || echo "python3.7 not found in PATH"
-              ls -l /usr/local/bin/python3.7 || echo "python3.7 binary not found in /usr/local/bin"
-              /usr/local/bin/python3.7 --version || echo "python3.7 execution failed"
+              echo "Verifying Python installation..."
+              which python3.7 || echo "python3.7 not in PATH"
+              ls -l /usr/local/bin/python3.7 || echo "Binary not found"
+              /usr/local/bin/python3.7 --version || echo "Execution failed"
             displayName: 'Debug Python Install Path'
 
           - script: |
@@ -40,24 +42,26 @@ stages:
               git clone -b master https://github.com/Thiru799/ansible8.git temp_project
               mkdir -p $(Pipeline.Workspace)/Projects/demo
               cp -r temp_project/* $(Pipeline.Workspace)/Projects/demo/
-              ls $(Pipeline.Workspace)/Projects/demo/
+              ls -la $(Pipeline.Workspace)/Projects/demo/
             displayName: 'Clone and Copy Project Files'
 
           - script: |
               echo "Creating virtual environment with Python 3.7..."
-              /usr/local/bin/python3.7 -m venv enve
-              source enve/bin/activate
+              cd $(Pipeline.Workspace)/Projects/demo
+              /usr/local/bin/python3.7 -m venv venv
+              source venv/bin/activate
 
-              echo "Upgrading pip and installing dependencies..."
+              echo "Upgrading pip..."
               pip install --upgrade pip setuptools wheel
 
               if [ ! -f requirements.txt ]; then
-                  echo "Creating default requirements.txt"
+                  echo "Creating fallback requirements.txt"
                   echo "pytest" > requirements.txt
                   echo "requests" >> requirements.txt
                   echo "flask" >> requirements.txt
               fi
 
+              echo "Installing dependencies..."
               pip install -r requirements.txt
             displayName: 'Create Virtual Environment and Install Dependencies'
 
