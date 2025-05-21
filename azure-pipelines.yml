@@ -2,59 +2,74 @@ trigger:
 - master
 
 stages:
-  - stage: python
-    displayName: Python Setup
-    jobs:
-      - job: python
-        displayName: Install Python and Setup Environment
-        pool:
-          name: 'new agent vm self hosted'  # Make sure this matches your actual agent pool name
-        steps:
-          - script: |
-              echo "Installing system dependencies..."
-              sudo apt-get update
-              sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
-              libnss3-dev libssl-dev libreadline-dev libffi-dev curl wget
+- stage: python
+  displayName: Python Setup
+  jobs:
+    - job: python
+      displayName: Install Python and Setup Environment
+      pool:
+        name: 'new agent vm self hosted'  # Adjust if needed
 
-              echo "Downloading and installing Python 3.7.9..."
-              wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
-              tar -xvf Python-3.7.9.tgz
-              cd Python-3.7.9
-              ./configure --enable-optimizations
-              make -j$(nproc)
-              sudo make altinstall
+      steps:
+        # Optional: clean up previous build artifacts
+        - script: |
+            echo "Cleaning up previous files..."
+            rm -rf Python-3.7.9 Python-3.7.9.tgz enve temp_project
+          displayName: 'Clean Previous Artifacts'
 
-              echo "Checking installed Python version:"
-              python3.7 --version
-            displayName: 'Install Python 3.7.9'
+        # Fix any workspace permission issues
+        - script: |
+            echo "Fixing permissions in agent workspace..."
+            sudo chown -R $(whoami):$(whoami) $(Agent.WorkFolder)
+          displayName: 'Fix Workspace Permissions'
 
-          - script: |
-              echo "Cloning project repository..."
-              git clone -b master https://github.com/Thiru799/ansible8.git temp_project
-              mkdir -p $(Pipeline.Workspace)/Projects/demo
-              cp -r temp_project/* $(Pipeline.Workspace)/Projects/demo/
-              ls $(Pipeline.Workspace)/Projects/demo/
-            displayName: 'Clone and Copy Project Files'
+        # Install Python 3.7.9 safely
+        - script: |
+            echo "Installing dependencies..."
+            sudo apt-get update
+            sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
+            libnss3-dev libssl-dev libreadline-dev libffi-dev curl wget
 
-          - script: |
-              echo "Creating virtual environment with Python 3.7..."
-              python3.7 -m venv enve
-              source enve/bin/activate
+            echo "Downloading Python 3.7.9..."
+            cd /tmp
+            wget -q https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
+            tar -xf Python-3.7.9.tgz
+            cd Python-3.7.9
+            ./configure --enable-optimizations
+            make -j$(nproc)
+            sudo make altinstall
 
-              echo "Upgrading pip and installing dependencies..."
-              pip install --upgrade pip setuptools wheel
+            echo "Python installed:"
+            /usr/local/bin/python3.7 --version
+          displayName: 'Install Python 3.7.9'
 
-              if [ ! -f requirements.txt ]; then
-                  echo "Creating default requirements.txt"
-                  echo "pytest" > requirements.txt
-                  echo "requests" >> requirements.txt
-                  echo "flask" >> requirements.txt
-              fi
+        # Clone project and create venv
+        - script: |
+            echo "Cloning repo..."
+            git clone -b master https://github.com/Thiru799/ansible8.git temp_project
 
-              pip install -r requirements.txt
-            displayName: 'Create Virtual Environment and Install Dependencies'
+            echo "Copying to working dir..."
+            mkdir -p $(Pipeline.Workspace)/Projects/demo
+            cp -r temp_project/* $(Pipeline.Workspace)/Projects/demo/
+            cd $(Pipeline.Workspace)/Projects/demo
 
-          - script: |
-              echo "Python dependencies installed successfully!"
-            displayName: 'Final Success Message'
-            condition: succeeded()
+            echo "Creating virtual environment..."
+            /usr/local/bin/python3.7 -m venv enve
+            source enve/bin/activate
+
+            echo "Upgrading pip and installing dependencies..."
+            pip install --upgrade pip setuptools wheel
+
+            if [ ! -f requirements.txt ]; then
+                echo "pytest" > requirements.txt
+                echo "requests" >> requirements.txt
+                echo "flask" >> requirements.txt
+            fi
+
+            pip install -r requirements.txt
+          displayName: 'Clone Repo & Setup Python Env'
+
+        - script: |
+            echo "Pipeline succeeded!"
+          displayName: 'Final Success Message'
+          condition: succeeded()
