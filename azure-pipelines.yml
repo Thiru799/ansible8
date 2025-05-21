@@ -8,15 +8,22 @@ stages:
       - job: python
         displayName: Install Python and Setup Environment
         pool:
-          name: 'new agent vm self hosted'  # Your self-hosted agent pool name
+          name: 'new agent vm self hosted'  # Your self-hosted agent pool name here
         steps:
+          # Step 1: Fix permissions in the workspace so agent can write/delete files
+          - script: |
+              echo "Fixing permissions in agent workspace..."
+              sudo chown -R $(whoami):$(whoami) $(Agent.WorkFolder)
+            displayName: 'Fix Agent Workspace Permissions'
+
+          # Step 2: Install system dependencies and build Python OUTSIDE the workspace (e.g., /tmp)
           - script: |
               echo "Installing system dependencies..."
               sudo apt-get update
               sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
               libnss3-dev libssl-dev libreadline-dev libffi-dev curl wget
 
-              echo "Downloading and installing Python 3.7.9 outside workspace (/tmp)..."
+              echo "Downloading and installing Python 3.7.9 in /tmp..."
               cd /tmp
               wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
               tar -xvf Python-3.7.9.tgz
@@ -25,20 +32,19 @@ stages:
               make -j$(nproc)
               sudo make altinstall
 
-              echo "Checking installed Python version:"
+              echo "Installed Python version:"
               /usr/local/bin/python3.7 --version
-            displayName: 'Install Python 3.7.9 (outside workspace)'
+            displayName: 'Install Python 3.7.9 outside workspace'
 
+          # Step 3: Clone your repo, create venv, install dependencies using the installed python
           - script: |
-              echo "Cloning project repository..."
-              git clone -b master https://github.com/Thiru799/ansible8.git temp_project
+              echo "Cloning repo and setting up environment..."
+              git clone -b master https://github.com/Thiru799/ansible8.git repo_temp
               mkdir -p $(Pipeline.Workspace)/Projects/demo
-              cp -r temp_project/* $(Pipeline.Workspace)/Projects/demo/
+              cp -r repo_temp/* $(Pipeline.Workspace)/Projects/demo/
               ls $(Pipeline.Workspace)/Projects/demo/
-            displayName: 'Clone and Copy Project Files'
 
-          - script: |
-              echo "Creating virtual environment with Python 3.7..."
+              echo "Creating virtual environment..."
               /usr/local/bin/python3.7 -m venv enve
               source enve/bin/activate
 
@@ -46,16 +52,14 @@ stages:
               pip install --upgrade pip setuptools wheel
 
               if [ ! -f requirements.txt ]; then
-                  echo "Creating default requirements.txt"
                   echo "pytest" > requirements.txt
                   echo "requests" >> requirements.txt
                   echo "flask" >> requirements.txt
               fi
 
               pip install -r requirements.txt
-            displayName: 'Create Virtual Environment and Install Dependencies'
+            displayName: 'Clone Repo & Setup Python Environment'
 
-          - script: |
-              echo "Python dependencies installed successfully!"
+          - script: echo "Pipeline succeeded!"
             displayName: 'Final Success Message'
             condition: succeeded()
