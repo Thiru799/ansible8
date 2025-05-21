@@ -8,7 +8,7 @@ stages:
       - job: python
         displayName: Install Python and Setup Environment
         pool:
-          name: 'new agent vm self hosted'  # Make sure this matches your actual agent pool name
+          name: 'new agent vm self hosted'  # Replace with your actual self-hosted agent pool name
         steps:
           - script: |
               echo "Installing system dependencies..."
@@ -29,6 +29,13 @@ stages:
             displayName: 'Install Python 3.7.9'
 
           - script: |
+              echo "Verifying Python 3.7 installation..."
+              which python3.7 || echo "python3.7 not found in PATH"
+              ls -l /usr/local/bin/python3.7 || echo "python3.7 binary not found in /usr/local/bin"
+              /usr/local/bin/python3.7 --version || echo "python3.7 execution failed"
+            displayName: 'Debug Python Install Path'
+
+          - script: |
               echo "Cloning project repository..."
               git clone -b master https://github.com/Thiru799/ansible8.git temp_project
               mkdir -p $(Pipeline.Workspace)/Projects/demo
@@ -38,7 +45,7 @@ stages:
 
           - script: |
               echo "Creating virtual environment with Python 3.7..."
-              python3.7 -m venv enve
+              /usr/local/bin/python3.7 -m venv enve
               source enve/bin/activate
 
               echo "Upgrading pip and installing dependencies..."
