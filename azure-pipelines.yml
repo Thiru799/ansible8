@@ -6,54 +6,55 @@ stages:
     displayName: Python Setup
     jobs:
       - job: python
-        displayName: Download, Setup Environment, Install Dependencies
-        pool: 'new agent vm self hosted'
+        displayName: Install Python and Setup Environment
+        pool:
+          name: 'new agent vm self hosted'  # Make sure this matches your actual agent pool name
         steps:
-          - script: 
+          - script: |
               echo "Installing system dependencies..."
               sudo apt-get update
               sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
-              libnss3-dev libssl-dev libreadline-dev libffi-dev curl
+              libnss3-dev libssl-dev libreadline-dev libffi-dev curl wget
 
-              echo "Downloading Python 3.7.9 source..."
-              curl -O https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
+              echo "Downloading and installing Python 3.7.9..."
+              wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
               tar -xvf Python-3.7.9.tgz
               cd Python-3.7.9
-              echo "Configuring and building Python..."
               ./configure --enable-optimizations
               make -j$(nproc)
               sudo make altinstall
-              echo "Installed Python version:"
-              python3.7 --version
-            displayName: 'Install Python 3.7.9 on ARM64'
 
-          - task: AzureCLI@2
-            inputs:
-              azureSubscription: "bot-connection"
-              scriptType: 'bash'
-              scriptLocation: inlineScript
-              inlineScript: |
-                git clone -b master https://github.com/Thiru799/ansible8.git temp_project
-                mkdir -p $(Pipeline.Workspace)/Projects/demo
-                cp -r temp_project/* $(Pipeline.Workspace)/Projects/demo/
-                ls $(Pipeline.Workspace)/Projects/demo/
+              echo "Checking installed Python version:"
+              python3.7 --version
+            displayName: 'Install Python 3.7.9'
 
           - script: |
-              # export PATH="/usr/local/bin:$PATH"
-              python -m venv enve
-              source enve/Scripts/activate
+              echo "Cloning project repository..."
+              git clone -b master https://github.com/Thiru799/ansible8.git temp_project
+              mkdir -p $(Pipeline.Workspace)/Projects/demo
+              cp -r temp_project/* $(Pipeline.Workspace)/Projects/demo/
+              ls $(Pipeline.Workspace)/Projects/demo/
+            displayName: 'Clone and Copy Project Files'
+
+          - script: |
+              echo "Creating virtual environment with Python 3.7..."
+              python3.7 -m venv enve
+              source enve/bin/activate
+
+              echo "Upgrading pip and installing dependencies..."
               pip install --upgrade pip setuptools wheel
-              
-              if not exist requirements.txt (
-                  echo pytest > requirements.txt
-                  echo requests >> requirements.txt
-                  echo flask >> requirements.txt
-              )
+
+              if [ ! -f requirements.txt ]; then
+                  echo "Creating default requirements.txt"
+                  echo "pytest" > requirements.txt
+                  echo "requests" >> requirements.txt
+                  echo "flask" >> requirements.txt
+              fi
 
               pip install -r requirements.txt
-            displayName: 'Create Venv and Install Python Dependencies'
+            displayName: 'Create Virtual Environment and Install Dependencies'
 
           - script: |
-              echo Python dependencies installed successfully!
-            displayName: 'Success Message'
+              echo "Python dependencies installed successfully!"
+            displayName: 'Final Success Message'
             condition: succeeded()
