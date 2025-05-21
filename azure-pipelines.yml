@@ -8,7 +8,7 @@ stages:
   - job: InstallPython
     displayName: Install Python and Setup Environment
     pool:
-      name: 'new agent vm self hosted'  # Replace with your self-hosted agent pool name
+      name: 'new agent vm self hosted'
 
     steps:
     - script: |
@@ -26,28 +26,25 @@ stages:
         make -j$(nproc)
         sudo make altinstall
 
-        echo "Linking python3.7 to /usr/local/bin..."
+        echo "Linking python3.7 and pip3.7..."
         sudo ln -sf /opt/python3.7.9/bin/python3.7 /usr/local/bin/python3.7
         sudo ln -sf /opt/python3.7.9/bin/pip3.7 /usr/local/bin/pip3.7
-
-        echo "Python version:"
-        python3.7 --version
-      displayName: 'Install Python 3.7.9 (Outside Workspace)'
+      displayName: 'Install Python 3.7.9 (Safe Path)'
 
     - script: |
         echo "Verifying Python install..."
         which python3.7
         python3.7 --version
-      displayName: 'Verify Python Installation'
+      displayName: 'Check Python Version'
 
     - script: |
-        echo "Cloning project repo..."
+        echo "Cloning project..."
         git clone -b master https://github.com/Thiru799/ansible8.git project
         ls project
       displayName: 'Clone Project Repository'
 
     - script: |
-        echo "Creating virtual environment..."
+        echo "Creating virtualenv with Python 3.7..."
         python3.7 -m venv venv
         source venv/bin/activate
 
@@ -61,9 +58,9 @@ stages:
         fi
 
         pip install -r project/requirements.txt
-      displayName: 'Set Up Virtual Env and Install Dependencies'
+      displayName: 'Create venv and Install Dependencies'
 
     - script: |
-        echo "Python dependencies installed successfully."
-      displayName: 'Final Success Message'
+        echo "All done. Python environment ready."
+      displayName: 'Success Message'
       condition: succeeded()
