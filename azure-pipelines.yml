@@ -2,70 +2,68 @@ trigger:
 - master
 
 stages:
-  - stage: python
-    displayName: Python Setup
-    jobs:
-      - job: python
-        displayName: Install Python and Setup Environment
-        pool:
-          name: 'new agent vm self hosted'  # Replace with your actual pool name
+- stage: Setup
+  displayName: Python Setup
+  jobs:
+  - job: InstallPython
+    displayName: Install Python and Setup Environment
+    pool:
+      name: 'new agent vm self hosted'  # Replace with your self-hosted agent pool name
 
-        steps:
-          - script: |
-              echo "Installing system dependencies..."
-              sudo apt-get update
-              sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
-              libnss3-dev libssl-dev libreadline-dev libffi-dev curl wget
+    steps:
+    - script: |
+        echo "Installing system dependencies..."
+        sudo apt-get update
+        sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
+          libnss3-dev libssl-dev libreadline-dev libffi-dev curl wget
 
-              echo "Downloading and installing Python 3.7.9..."
-              cd /tmp
-              wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
-              tar -xvf Python-3.7.9.tgz
-              cd Python-3.7.9
-              ./configure --enable-optimizations
-              make -j$(nproc)
-              sudo make altinstall
+        echo "Installing Python 3.7.9 in /opt/python3.7.9..."
+        cd /tmp
+        wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
+        tar -xvf Python-3.7.9.tgz
+        cd Python-3.7.9
+        ./configure --prefix=/opt/python3.7.9 --enable-optimizations
+        make -j$(nproc)
+        sudo make altinstall
 
-              echo "Checking installed Python version:"
-              /usr/local/bin/python3.7 --version
-            displayName: 'Install Python 3.7.9 (Safe)'
+        echo "Linking python3.7 to /usr/local/bin..."
+        sudo ln -sf /opt/python3.7.9/bin/python3.7 /usr/local/bin/python3.7
+        sudo ln -sf /opt/python3.7.9/bin/pip3.7 /usr/local/bin/pip3.7
 
-          - script: |
-              echo "Verifying Python installation..."
-              which python3.7 || echo "python3.7 not in PATH"
-              ls -l /usr/local/bin/python3.7 || echo "Binary not found"
-              /usr/local/bin/python3.7 --version || echo "Execution failed"
-            displayName: 'Debug Python Install Path'
+        echo "Python version:"
+        python3.7 --version
+      displayName: 'Install Python 3.7.9 (Outside Workspace)'
 
-          - script: |
-              echo "Cloning project repository..."
-              git clone -b master https://github.com/Thiru799/ansible8.git temp_project
-              mkdir -p $(Pipeline.Workspace)/Projects/demo
-              cp -r temp_project/* $(Pipeline.Workspace)/Projects/demo/
-              ls -la $(Pipeline.Workspace)/Projects/demo/
-            displayName: 'Clone and Copy Project Files'
+    - script: |
+        echo "Verifying Python install..."
+        which python3.7
+        python3.7 --version
+      displayName: 'Verify Python Installation'
 
-          - script: |
-              echo "Creating virtual environment with Python 3.7..."
-              cd $(Pipeline.Workspace)/Projects/demo
-              /usr/local/bin/python3.7 -m venv venv
-              source venv/bin/activate
+    - script: |
+        echo "Cloning project repo..."
+        git clone -b master https://github.com/Thiru799/ansible8.git project
+        ls project
+      displayName: 'Clone Project Repository'
 
-              echo "Upgrading pip..."
-              pip install --upgrade pip setuptools wheel
+    - script: |
+        echo "Creating virtual environment..."
+        python3.7 -m venv venv
+        source venv/bin/activate
 
-              if [ ! -f requirements.txt ]; then
-                  echo "Creating fallback requirements.txt"
-                  echo "pytest" > requirements.txt
-                  echo "requests" >> requirements.txt
-                  echo "flask" >> requirements.txt
-              fi
+        echo "Upgrading pip and installing dependencies..."
+        pip install --upgrade pip setuptools wheel
 
-              echo "Installing dependencies..."
-              pip install -r requirements.txt
-            displayName: 'Create Virtual Environment and Install Dependencies'
+        if [ ! -f project/requirements.txt ]; then
+          echo "pytest" > project/requirements.txt
+          echo "requests" >> project/requirements.txt
+          echo "flask" >> project/requirements.txt
+        fi
 
-          - script: |
-              echo "Python dependencies installed successfully!"
-            displayName: 'Final Success Message'
-            condition: succeeded()
+        pip install -r project/requirements.txt
+      displayName: 'Set Up Virtual Env and Install Dependencies'
+
+    - script: |
+        echo "Python dependencies installed successfully."
+      displayName: 'Final Success Message'
+      condition: succeeded()
