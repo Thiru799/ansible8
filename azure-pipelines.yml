@@ -10,19 +10,19 @@ stages:
         pool:
           name: 'new agent vm self hosted'  # Your self-hosted agent pool name here
         steps:
-          # Step 1: Fix permissions in the workspace so agent can write/delete files
+          # Fix permissions first
           - script: |
               echo "Fixing permissions in agent workspace..."
-              sudo chown -R $(whoami):$(whoami) $(Agent.WorkFolder)
+              sudo chown -R $(USER) $(Pipeline.Workspace)
             displayName: 'Fix Agent Workspace Permissions'
 
-          # Step 2: Install system dependencies and build Python OUTSIDE the workspace (e.g., /tmp)
+          # Now install dependencies and Python outside workspace
           - script: |
               echo "Installing system dependencies..."
               sudo apt-get update
               sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
               libnss3-dev libssl-dev libreadline-dev libffi-dev curl wget
-
+              
               echo "Downloading and installing Python 3.7.9 in /tmp..."
               cd /tmp
               wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
@@ -31,12 +31,12 @@ stages:
               ./configure --enable-optimizations
               make -j$(nproc)
               sudo make altinstall
-
+              
               echo "Installed Python version:"
               /usr/local/bin/python3.7 --version
             displayName: 'Install Python 3.7.9 outside workspace'
 
-          # Step 3: Clone your repo, create venv, install dependencies using the installed python
+          # Clone repo, setup environment
           - script: |
               echo "Cloning repo and setting up environment..."
               git clone -b master https://github.com/Thiru799/ansible8.git repo_temp
